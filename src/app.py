@@ -7,6 +7,8 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, Gdk
 
+from telemetry import collect_all_devices
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
@@ -16,10 +18,7 @@ class InfraMonitor(Gtk.Window):
     def __init__(self):
         super().__init__(title="postmarketOS Infra Monitor")
 
-        self.devices = [
-            self.load_device("raspi5.json"),
-            self.load_device("raspi4.json"),
-        ]
+        self.devices = self.load_devices()
         self.current_index = 0
 
         self.touch_start_x = None
@@ -65,7 +64,22 @@ class InfraMonitor(Gtk.Window):
         self.load_css()
         self.render_device()
 
-    def load_device(self, filename):
+    def load_devices(self):
+        try:
+            devices = collect_all_devices()
+
+            if devices:
+                return devices
+
+        except Exception as error:
+            print(f"Live telemetry failed, using fallback JSON data: {error}")
+
+        return [
+            self.load_device_from_json("raspi5.json"),
+            self.load_device_from_json("raspi4.json"),
+        ]
+
+    def load_device_from_json(self, filename):
         with open(DATA_DIR / filename, "r", encoding="utf-8") as file:
             return json.load(file)
 
@@ -97,7 +111,22 @@ class InfraMonitor(Gtk.Window):
             self.cards_grid.remove(child)
 
     def render_device(self):
+        if not self.devices:
+            return
+
         device = self.devices[self.current_index]
+
+        self.clear_grid()
+
+        if device.get("offline"):
+            self.render_offline_device(device)
+        else:
+            self.render_online_device(device)
+
+        self.update_navigation_buttons()
+        self.cards_grid.show_all()
+
+    def render_online_device(self, device):
         fail2ban = device.get("fail2ban", {})
 
         self.title_label.set_markup(
@@ -105,17 +134,31 @@ class InfraMonitor(Gtk.Window):
             f"<span size='13000'>{device['hostname']}</span>"
         )
 
-        self.clear_grid()
-
         cards = [
             self.create_card("CPU TEMP", f"{device['cpu_temp']} °C"),
-            self.create_card("CPU LOAD", f"{device['cpu_load']} %"),
+            self.create_card("CPU LOAD", str(device["cpu_load"])),
             self.create_card("RAM", f"{device['ram_used']} / {device['ram_total']} GB"),
             self.create_card("UPTIME", device["uptime"]),
             self.create_card("FAIL2BAN", f"{fail2ban.get('total_bans', 'n/a')} bans"),
             self.create_card("LAST BANNED IP", fail2ban.get("last_banned_ip", "n/a")),
         ]
 
+        self.attach_cards(cards)
+
+    def render_offline_device(self, device):
+        self.title_label.set_markup(
+            f"<span size='26000' weight='bold'>{device['name']}</span>\n"
+            f"<span size='13000'>{device['hostname']}</span>"
+        )
+
+        cards = [
+            self.create_card("STATUS", "OFFLINE"),
+            self.create_card("ERROR", device.get("error", "Unknown error")),
+        ]
+
+        self.attach_cards(cards)
+
+    def attach_cards(self, cards):
         positions = [
             (0, 0), (1, 0),
             (0, 1), (1, 1),
@@ -124,8 +167,6 @@ class InfraMonitor(Gtk.Window):
 
         for card, (column, row) in zip(cards, positions):
             self.cards_grid.attach(card, column, row, 1, 1)
-
-        self.cards_grid.show_all()
 
     def previous_device(self, button=None):
         if self.current_index > 0:
@@ -136,6 +177,10 @@ class InfraMonitor(Gtk.Window):
         if self.current_index < len(self.devices) - 1:
             self.current_index += 1
             self.render_device()
+
+    def update_navigation_buttons(self):
+        self.prev_button.set_sensitive(self.current_index > 0)
+        self.next_button.set_sensitive(self.current_index < len(self.devices) - 1)
 
     def on_touch_press(self, widget, event):
         self.touch_start_x = event.x

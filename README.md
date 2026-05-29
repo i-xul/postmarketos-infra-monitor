@@ -19,7 +19,7 @@ The application displays telemetry from Raspberry Pi systems and self-hosted ser
 
 ## Screenshot
 
-![Prototype UI](screenshots/prototype-v0.1.jpg)
+![Prototype UI](screenshots/prototype-v0.1.png)
 
 ## Project Goals
 

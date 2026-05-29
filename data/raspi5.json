@@ -1,0 +1,13 @@
+{
+  "name": "Raspberry Pi 5",
+  "hostname": "raspi5",
+  "cpu_temp": 48.2,
+  "cpu_load": 12,
+  "ram_used": 2.1,
+  "ram_total": 8.0,
+  "uptime": "14 days",
+  "fail2ban": {
+    "total_bans": 18,
+    "last_banned_ip": "185.xxx.xxx.xxx"
+  }
+}

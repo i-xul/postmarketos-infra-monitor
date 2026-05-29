@@ -22,6 +22,9 @@ class InfraMonitor(Gtk.Window):
         ]
         self.current_index = 0
 
+        self.touch_start_x = None
+        self.touch_end_x = None
+
         self.set_default_size(800, 480)
         self.set_border_width(24)
 
@@ -50,6 +53,13 @@ class InfraMonitor(Gtk.Window):
         self.main_box.pack_start(self.metrics_label, True, True, 0)
         self.main_box.pack_start(self.nav_box, False, False, 0)
 
+        self.add_events(
+            Gdk.EventMask.BUTTON_PRESS_MASK |
+            Gdk.EventMask.BUTTON_RELEASE_MASK
+        )
+
+        self.connect("button-press-event", self.on_touch_press)
+        self.connect("button-release-event", self.on_touch_release)
         self.connect("key-press-event", self.on_key_press)
 
         self.load_css()
@@ -88,6 +98,26 @@ class InfraMonitor(Gtk.Window):
     def next_device(self, button=None):
         self.current_index = (self.current_index + 1) % len(self.devices)
         self.render_device()
+
+    def on_touch_press(self, widget, event):
+        self.touch_start_x = event.x
+
+    def on_touch_release(self, widget, event):
+        self.touch_end_x = event.x
+
+        if self.touch_start_x is None or self.touch_end_x is None:
+            return
+
+        delta_x = self.touch_end_x - self.touch_start_x
+        swipe_threshold = 80
+
+        if delta_x > swipe_threshold:
+            self.previous_device()
+        elif delta_x < -swipe_threshold:
+            self.next_device()
+
+        self.touch_start_x = None
+        self.touch_end_x = None
 
     def on_key_press(self, widget, event):
         key = Gdk.keyval_name(event.keyval)

@@ -128,12 +128,14 @@ class InfraMonitor(Gtk.Window):
         self.cards_grid.show_all()
 
     def previous_device(self, button=None):
-        self.current_index = (self.current_index - 1) % len(self.devices)
-        self.render_device()
+        if self.current_index > 0:
+            self.current_index -= 1
+            self.render_device()
 
     def next_device(self, button=None):
-        self.current_index = (self.current_index + 1) % len(self.devices)
-        self.render_device()
+        if self.current_index < len(self.devices) - 1:
+            self.current_index += 1
+            self.render_device()
 
     def on_touch_press(self, widget, event):
         self.touch_start_x = event.x

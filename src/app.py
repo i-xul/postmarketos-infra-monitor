@@ -26,17 +26,17 @@ class InfraMonitor(Gtk.Window):
         self.touch_end_x = None
 
         self.set_default_size(800, 480)
-        self.set_border_width(24)
+        self.set_border_width(20)
 
-        self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
+        self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
         self.add(self.main_box)
 
         self.title_label = Gtk.Label()
         self.title_label.set_xalign(0)
 
-        self.metrics_label = Gtk.Label()
-        self.metrics_label.set_xalign(0)
-        self.metrics_label.set_yalign(0)
+        self.cards_grid = Gtk.Grid()
+        self.cards_grid.set_row_spacing(12)
+        self.cards_grid.set_column_spacing(12)
 
         self.nav_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
 
@@ -50,7 +50,7 @@ class InfraMonitor(Gtk.Window):
         self.nav_box.pack_start(self.next_button, True, True, 0)
 
         self.main_box.pack_start(self.title_label, False, False, 0)
-        self.main_box.pack_start(self.metrics_label, True, True, 0)
+        self.main_box.pack_start(self.cards_grid, True, True, 0)
         self.main_box.pack_start(self.nav_box, False, False, 0)
 
         self.add_events(
@@ -69,27 +69,63 @@ class InfraMonitor(Gtk.Window):
         with open(DATA_DIR / filename, "r", encoding="utf-8") as file:
             return json.load(file)
 
+    def create_card(self, title, value):
+        frame = Gtk.Frame()
+        frame.set_shadow_type(Gtk.ShadowType.NONE)
+
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        box.set_border_width(14)
+
+        title_label = Gtk.Label()
+        title_label.set_markup(f"<span size='12000' weight='bold'>{title}</span>")
+        title_label.set_xalign(0)
+
+        value_label = Gtk.Label()
+        value_label.set_markup(f"<span size='22000' weight='bold'>{value}</span>")
+        value_label.set_xalign(0)
+
+        box.pack_start(title_label, False, False, 0)
+        box.pack_start(value_label, True, True, 0)
+
+        frame.add(box)
+        frame.get_style_context().add_class("metric-card")
+
+        return frame
+
+    def clear_grid(self):
+        for child in self.cards_grid.get_children():
+            self.cards_grid.remove(child)
+
     def render_device(self):
         device = self.devices[self.current_index]
         fail2ban = device.get("fail2ban", {})
 
         self.title_label.set_markup(
-            f"<span size='28000' weight='bold'>{device['name']}</span>\n"
-            f"<span size='14000'>{device['hostname']}</span>"
+            f"<span size='26000' weight='bold'>{device['name']}</span>\n"
+            f"<span size='13000'>{device['hostname']}</span>"
         )
 
-        text = (
-            f"CPU temperature: {device['cpu_temp']} °C\n"
-            f"CPU load:        {device['cpu_load']} %\n"
-            f"RAM:             {device['ram_used']} / {device['ram_total']} GB\n"
-            f"Uptime:          {device['uptime']}\n\n"
-            f"Fail2ban bans:   {fail2ban.get('total_bans', 'n/a')}\n"
-            f"Last banned IP:  {fail2ban.get('last_banned_ip', 'n/a')}"
-        )
+        self.clear_grid()
 
-        self.metrics_label.set_markup(
-            f"<span size='18000'><tt>{text}</tt></span>"
-        )
+        cards = [
+            self.create_card("CPU TEMP", f"{device['cpu_temp']} °C"),
+            self.create_card("CPU LOAD", f"{device['cpu_load']} %"),
+            self.create_card("RAM", f"{device['ram_used']} / {device['ram_total']} GB"),
+            self.create_card("UPTIME", device["uptime"]),
+            self.create_card("FAIL2BAN", f"{fail2ban.get('total_bans', 'n/a')} bans"),
+            self.create_card("LAST BANNED IP", fail2ban.get("last_banned_ip", "n/a")),
+        ]
+
+        positions = [
+            (0, 0), (1, 0),
+            (0, 1), (1, 1),
+            (0, 2), (1, 2),
+        ]
+
+        for card, (column, row) in zip(cards, positions):
+            self.cards_grid.attach(card, column, row, 1, 1)
+
+        self.cards_grid.show_all()
 
     def previous_device(self, button=None):
         self.current_index = (self.current_index - 1) % len(self.devices)
@@ -141,8 +177,14 @@ class InfraMonitor(Gtk.Window):
         }
 
         button {
-            font-size: 20px;
-            padding: 12px;
+            font-size: 18px;
+            padding: 10px;
+        }
+
+        .metric-card {
+            background-color: #222222;
+            border-radius: 14px;
+            border: 1px solid #444444;
         }
         """
 

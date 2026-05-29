@@ -36,25 +36,70 @@ The long-term goal is to provide a lightweight monitoring dashboard for:
 
 The application is designed for dedicated monitoring tablets rather than traditional desktop use.
 
+## Current Version
+
+```text
+v0.2
+```
+
+### Completed
+
+- GTK-based native Linux application
+- Runs on postmarketOS
+- Multi-device support
+- Touch swipe navigation
+- Dashboard card layout
+- Screenshot documentation
+- GitHub repository documentation
+- Bounded navigation (no infinite device looping)
+
 ## Roadmap
 
-### v0.2
+### v0.3 – Live Telemetry
 
-- Implement touch swipe navigation between device views
-- Improve tablet-oriented layout
-- Add additional telemetry fields
+Replace static JSON data with real telemetry collected from Raspberry Pi devices.
 
-### v0.3
+Example:
 
-- Retrieve telemetry from real Raspberry Pi devices
-- Display Docker container status
-- Display Fail2ban statistics
+```text
+Tablet
+    ↓ SSH
+Raspberry Pi 5
+    ↓
+CPU temperature
+CPU load
+RAM usage
+Uptime
+```
+
+Possible telemetry sources:
+
+```bash
+vcgencmd measure_temp
+uptime
+free -m
+df -h
+```
+
+Planned additions:
+
+- Docker container status
+- Fail2ban statistics
+- Pi-hole metrics
+- Service health checks
+- MagicMirror status
 
 ### v0.4
 
 - Offline device detection
 - Automatic refresh
 - Multi-host support
+- Status indicators
+- Device health monitoring
+
+## Recommended Next Milestone
+
+Implement live SSH telemetry collection from a Raspberry Pi device and display real-time system information in the dashboard.
 
 ## Tested Platform
 

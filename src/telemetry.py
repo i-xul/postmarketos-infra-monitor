@@ -168,12 +168,21 @@ def parse_pihole_stats(stats_output):
     percent_blocked = float(stats.get("ads_percentage_today", 0.0))
     status = stats.get("status", "unknown")
 
+    domains_blocked = int(stats.get("domains_being_blocked", 0))
+    unique_clients = int(stats.get("unique_clients", 0))
+    queries_forwarded = int(stats.get("queries_forwarded", 0))
+    queries_cached = int(stats.get("queries_cached", 0))
+
     return {
         "enabled": True,
         "queries_today": queries_today,
         "blocked_today": blocked_today,
         "percent_blocked": round(percent_blocked, 1),
         "status": status,
+        "domains_blocked": domains_blocked,
+        "unique_clients": unique_clients,
+        "queries_forwarded": queries_forwarded,
+        "queries_cached": queries_cached,
     }
 
 
@@ -185,6 +194,10 @@ def get_pihole_telemetry(device):
             "blocked_today": "n/a",
             "percent_blocked": "n/a",
             "status": "n/a",
+            "domains_blocked": "n/a",
+            "unique_clients": "n/a",
+            "queries_forwarded": "n/a",
+            "queries_cached": "n/a",
         }
 
     stats_output = run_ssh_command(

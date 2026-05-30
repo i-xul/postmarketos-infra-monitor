@@ -16,6 +16,10 @@ The application displays telemetry from Raspberry Pi systems and self-hosted ser
 - Multiple device views
 - JSON-based telemetry data source
 - Raspberry Pi test devices included
+- Pi-hole DNS telemetry
+- Fail2ban telemetry
+- Device-specific dashboard views
+- Automatic refresh (30 seconds)
 
 ## Screenshot
 

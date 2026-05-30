@@ -121,19 +121,26 @@ class InfraMonitor(Gtk.Window):
 
         return True
 
-    def create_card(self, title, value):
+    def create_card(self, title, value, card_class="metric-card"):
         frame = Gtk.Frame()
         frame.set_shadow_type(Gtk.ShadowType.NONE)
 
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        box = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL,
+            spacing=6
+        )
         box.set_border_width(14)
 
         title_label = Gtk.Label()
-        title_label.set_markup(f"<span size='12000' weight='bold'>{title}</span>")
+        title_label.set_markup(
+            f"<span size='12000' weight='bold'>{title}</span>"
+        )
         title_label.set_xalign(0)
 
         value_label = Gtk.Label()
-        value_label.set_markup(f"<span size='20000' weight='bold'>{value}</span>")
+        value_label.set_markup(
+            f"<span size='20000' weight='bold'>{value}</span>"
+        )
         value_label.set_xalign(0)
         value_label.set_line_wrap(True)
 
@@ -141,7 +148,8 @@ class InfraMonitor(Gtk.Window):
         box.pack_start(value_label, True, True, 0)
 
         frame.add(box)
-        frame.get_style_context().add_class("metric-card")
+
+        frame.get_style_context().add_class(card_class)
 
         return frame
 
@@ -224,8 +232,16 @@ class InfraMonitor(Gtk.Window):
         )
 
         cards = [
-            self.create_card("STATUS", "OFFLINE"),
-            self.create_card("ERROR", device.get("error", "Unknown error")),
+            self.create_card(
+                "STATUS",
+                "OFFLINE",
+                "offline-card"
+            ),
+            self.create_card(
+                "ERROR",
+                device.get("error", "Unknown error"),
+                "offline-card"
+            ),
         ]
 
         self.attach_cards(cards)
@@ -314,6 +330,12 @@ class InfraMonitor(Gtk.Window):
             background-color: #222222;
             border-radius: 14px;
             border: 1px solid #444444;
+        }
+
+        .offline-card {
+            background-color: #552222;
+            border-radius: 14px;
+            border: 2px solid #aa3333;
         }
         """
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import json
+from datetime import datetime
 from pathlib import Path
 
 import gi
@@ -19,6 +20,7 @@ class InfraMonitor(Gtk.Window):
     def __init__(self):
         super().__init__(title="postmarketOS Infra Monitor")
 
+        self.last_refresh_time = None
         self.devices = self.load_devices()
         self.current_index = 0
 
@@ -77,12 +79,15 @@ class InfraMonitor(Gtk.Window):
     def load_devices(self):
         try:
             devices = collect_all_devices()
+            self.last_refresh_time = datetime.now()
 
             if devices:
                 return devices
 
         except Exception as error:
             print(f"Live telemetry failed, using fallback JSON data: {error}")
+
+        self.last_refresh_time = datetime.now()
 
         return [
             self.load_device_from_json("raspi5.json"),
@@ -250,8 +255,13 @@ class InfraMonitor(Gtk.Window):
         self.next_button.set_sensitive(self.current_index < len(self.devices) - 1)
 
     def update_refresh_label(self):
+        if self.last_refresh_time:
+            refresh_time = self.last_refresh_time.strftime("%H:%M:%S")
+        else:
+            refresh_time = "n/a"
+
         self.refresh_label.set_markup(
-            f"<span size='10000'>Auto-refresh: {REFRESH_INTERVAL_SECONDS}s</span>"
+            f"<span size='10000'>Refresh: {REFRESH_INTERVAL_SECONDS}s | Last: {refresh_time}</span>"
         )
 
     def on_touch_press(self, widget, event):

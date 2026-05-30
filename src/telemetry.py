@@ -14,12 +14,21 @@ DEVICES = [
         "host": "192.168.1.11",
         "user": "hmasi",
         "fail2ban": False,
+        "pihole": False,
     },
     {
         "name": "Raspberry Pi 4",
         "host": "192.168.1.111",
         "user": "hmasi",
         "fail2ban": True,
+        "pihole": False,
+    },
+    {
+        "name": "Pi-hole",
+        "host": "192.168.1.222",
+        "user": "hmasi",
+        "fail2ban": False,
+        "pihole": True,
     },
 ]
 
@@ -144,6 +153,49 @@ def get_fail2ban_telemetry(device):
     }
 
 
+def parse_pihole_stats(stats_output):
+    stats = {}
+
+    for line in stats_output.splitlines():
+        parts = line.strip().split(maxsplit=1)
+
+        if len(parts) == 2:
+            key, value = parts
+            stats[key] = value
+
+    queries_today = int(stats.get("dns_queries_today", 0))
+    blocked_today = int(stats.get("ads_blocked_today", 0))
+    percent_blocked = float(stats.get("ads_percentage_today", 0.0))
+    status = stats.get("status", "unknown")
+
+    return {
+        "enabled": True,
+        "queries_today": queries_today,
+        "blocked_today": blocked_today,
+        "percent_blocked": round(percent_blocked, 1),
+        "status": status,
+    }
+
+
+def get_pihole_telemetry(device):
+    if not device.get("pihole"):
+        return {
+            "enabled": False,
+            "queries_today": "n/a",
+            "blocked_today": "n/a",
+            "percent_blocked": "n/a",
+            "status": "n/a",
+        }
+
+    stats_output = run_ssh_command(
+        host=device["host"],
+        user=device["user"],
+        command='echo -e ">stats\\n>quit" | nc 127.0.0.1 4711',
+    )
+
+    return parse_pihole_stats(stats_output)
+
+
 def get_linux_telemetry(device):
     command = """
 hostname
@@ -181,6 +233,7 @@ uptime -p
     uptime = lines[4].replace("up ", "").strip()
 
     fail2ban = get_fail2ban_telemetry(device)
+    pihole = get_pihole_telemetry(device)
 
     return {
         "name": device["name"],
@@ -191,6 +244,7 @@ uptime -p
         "ram_total": round(int(ram_total) / 1024, 1),
         "uptime": uptime,
         "fail2ban": fail2ban,
+        "pihole": pihole,
     }
 
 

@@ -5,13 +5,14 @@ from pathlib import Path
 
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, Gdk, GLib
 
 from telemetry import collect_all_devices
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
+REFRESH_INTERVAL_SECONDS = 30
 
 
 class InfraMonitor(Gtk.Window):
@@ -45,7 +46,11 @@ class InfraMonitor(Gtk.Window):
         self.prev_button.connect("clicked", self.previous_device)
         self.next_button.connect("clicked", self.next_device)
 
+        self.refresh_label = Gtk.Label()
+        self.refresh_label.set_xalign(0.5)
+
         self.nav_box.pack_start(self.prev_button, True, True, 0)
+        self.nav_box.pack_start(self.refresh_label, True, True, 0)
         self.nav_box.pack_start(self.next_button, True, True, 0)
 
         self.main_box.pack_start(self.title_label, False, False, 0)
@@ -63,6 +68,11 @@ class InfraMonitor(Gtk.Window):
 
         self.load_css()
         self.render_device()
+
+        GLib.timeout_add_seconds(
+            REFRESH_INTERVAL_SECONDS,
+            self.refresh_devices
+        )
 
     def load_devices(self):
         try:
@@ -83,6 +93,29 @@ class InfraMonitor(Gtk.Window):
         with open(DATA_DIR / filename, "r", encoding="utf-8") as file:
             return json.load(file)
 
+    def refresh_devices(self):
+        previous_device_name = None
+
+        if self.devices and self.current_index < len(self.devices):
+            previous_device_name = self.devices[self.current_index].get("name")
+
+        self.devices = self.load_devices()
+
+        if previous_device_name:
+            for index, device in enumerate(self.devices):
+                if device.get("name") == previous_device_name:
+                    self.current_index = index
+                    break
+            else:
+                self.current_index = 0
+
+        if self.current_index >= len(self.devices):
+            self.current_index = max(0, len(self.devices) - 1)
+
+        self.render_device()
+
+        return True
+
     def create_card(self, title, value):
         frame = Gtk.Frame()
         frame.set_shadow_type(Gtk.ShadowType.NONE)
@@ -95,8 +128,9 @@ class InfraMonitor(Gtk.Window):
         title_label.set_xalign(0)
 
         value_label = Gtk.Label()
-        value_label.set_markup(f"<span size='22000' weight='bold'>{value}</span>")
+        value_label.set_markup(f"<span size='20000' weight='bold'>{value}</span>")
         value_label.set_xalign(0)
+        value_label.set_line_wrap(True)
 
         box.pack_start(title_label, False, False, 0)
         box.pack_start(value_label, True, True, 0)
@@ -124,6 +158,7 @@ class InfraMonitor(Gtk.Window):
             self.render_online_device(device)
 
         self.update_navigation_buttons()
+        self.update_refresh_label()
         self.cards_grid.show_all()
 
     def render_online_device(self, device):
@@ -134,16 +169,29 @@ class InfraMonitor(Gtk.Window):
             f"<span size='13000'>{device['hostname']}</span>"
         )
 
+        fail2ban_text = self.format_fail2ban_text(fail2ban)
+
         cards = [
             self.create_card("CPU TEMP", f"{device['cpu_temp']} °C"),
             self.create_card("CPU LOAD", str(device["cpu_load"])),
             self.create_card("RAM", f"{device['ram_used']} / {device['ram_total']} GB"),
             self.create_card("UPTIME", device["uptime"]),
-            self.create_card("FAIL2BAN", f"{fail2ban.get('total_bans', 'n/a')} bans"),
-            self.create_card("LAST BANNED IP", fail2ban.get("last_banned_ip", "n/a")),
+            self.create_card("FAIL2BAN", fail2ban_text),
+            self.create_card("HOST", device["hostname"]),
         ]
 
         self.attach_cards(cards)
+
+    def format_fail2ban_text(self, fail2ban):
+        if not fail2ban.get("enabled"):
+            return "disabled"
+
+        return (
+            f"Total: {fail2ban.get('total_bans', 'n/a')}\n"
+            f"Current: {fail2ban.get('currently_banned', 'n/a')}\n"
+            f"Jails: {fail2ban.get('jail_count', 'n/a')}\n"
+            f"IP: {fail2ban.get('last_listed_ip', 'n/a')}"
+        )
 
     def render_offline_device(self, device):
         self.title_label.set_markup(
@@ -181,6 +229,11 @@ class InfraMonitor(Gtk.Window):
     def update_navigation_buttons(self):
         self.prev_button.set_sensitive(self.current_index > 0)
         self.next_button.set_sensitive(self.current_index < len(self.devices) - 1)
+
+    def update_refresh_label(self):
+        self.refresh_label.set_markup(
+            f"<span size='10000'>Auto-refresh: {REFRESH_INTERVAL_SECONDS}s</span>"
+        )
 
     def on_touch_press(self, widget, event):
         self.touch_start_x = event.x

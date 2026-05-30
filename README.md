@@ -24,6 +24,20 @@ The application displays telemetry from Raspberry Pi systems and self-hosted ser
 ![Prototype UI](screenshots/prototype-v0.1.png)
 ![Prototype UI](screenshots/swipe-navigation-v0.2.png)
 
+## Current Features
+
+- Native GTK application for postmarketOS
+- Touch swipe navigation
+- Multi-host monitoring
+- SSH-based telemetry collection
+- Automatic refresh (30 seconds)
+- CPU temperature monitoring
+- CPU load monitoring
+- RAM usage monitoring
+- Uptime monitoring
+- Fail2ban telemetry
+- Offline host detection
+
 ## Project Goals
 
 The long-term goal is to provide a lightweight monitoring dashboard for:

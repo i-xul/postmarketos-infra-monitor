@@ -162,16 +162,25 @@ class InfraMonitor(Gtk.Window):
         self.cards_grid.show_all()
 
     def render_online_device(self, device):
-        fail2ban = device.get("fail2ban", {})
+        pihole = device.get("pihole", {})
 
         self.title_label.set_markup(
             f"<span size='26000' weight='bold'>{device['name']}</span>\n"
             f"<span size='13000'>{device['hostname']}</span>"
         )
 
+        if pihole.get("enabled"):
+            cards = self.build_pihole_cards(device)
+        else:
+            cards = self.build_default_cards(device)
+
+        self.attach_cards(cards)
+
+    def build_default_cards(self, device):
+        fail2ban = device.get("fail2ban", {})
         fail2ban_text = self.format_fail2ban_text(fail2ban)
 
-        cards = [
+        return [
             self.create_card("CPU TEMP", f"{device['cpu_temp']} °C"),
             self.create_card("CPU LOAD", str(device["cpu_load"])),
             self.create_card("RAM", f"{device['ram_used']} / {device['ram_total']} GB"),
@@ -180,7 +189,17 @@ class InfraMonitor(Gtk.Window):
             self.create_card("HOST", device["hostname"]),
         ]
 
-        self.attach_cards(cards)
+    def build_pihole_cards(self, device):
+        pihole = device.get("pihole", {})
+
+        return [
+            self.create_card("CPU TEMP", f"{device['cpu_temp']} °C"),
+            self.create_card("RAM", f"{device['ram_used']} / {device['ram_total']} GB"),
+            self.create_card("QUERIES TODAY", str(pihole.get("queries_today", "n/a"))),
+            self.create_card("BLOCKED TODAY", str(pihole.get("blocked_today", "n/a"))),
+            self.create_card("BLOCKED %", f"{pihole.get('percent_blocked', 'n/a')} %"),
+            self.create_card("STATUS", str(pihole.get("status", "n/a"))),
+        ]
 
     def format_fail2ban_text(self, fail2ban):
         if not fail2ban.get("enabled"):

@@ -206,12 +206,35 @@ class InfraMonitor(Gtk.Window):
         pihole = device.get("pihole", {})
 
         return [
-            self.create_card("CPU TEMP", f"{device['cpu_temp']} °C"),
-            self.create_card("RAM", f"{device['ram_used']} / {device['ram_total']} GB"),
-            self.create_card("QUERIES TODAY", str(pihole.get("queries_today", "n/a"))),
-            self.create_card("BLOCKED TODAY", str(pihole.get("blocked_today", "n/a"))),
-            self.create_card("BLOCKED %", f"{pihole.get('percent_blocked', 'n/a')} %"),
-            self.create_card("STATUS", str(pihole.get("status", "n/a"))),
+            self.create_card(
+                "QUERIES",
+                str(pihole.get("queries_today", "n/a"))
+            ),
+
+            self.create_card(
+                "BLOCKED",
+                f"{pihole.get('blocked_today', 'n/a')}\n({pihole.get('percent_blocked', 'n/a')}%)"
+            ),
+
+            self.create_card(
+                "CLIENTS",
+                str(pihole.get("unique_clients", "n/a"))
+            ),
+
+            self.create_card(
+                "CACHE / FWD",
+                f"{pihole.get('queries_cached', 'n/a')} / {pihole.get('queries_forwarded', 'n/a')}"
+            ),
+
+            self.create_card(
+                "DOMAINS",
+                str(pihole.get("domains_blocked", "n/a"))
+            ),
+
+            self.create_card(
+                "UPTIME",
+                device["uptime"]
+            ),
         ]
 
     def format_fail2ban_text(self, fail2ban):
